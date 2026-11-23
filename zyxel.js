@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 76r75r6qbh-sys
 // Client for the Zyxel broadband router web GUI "DAL" API.
 // Protocol, as implemented by the router's own app.js:
 //  - GET /getRSAPublickKey -> RSA public key

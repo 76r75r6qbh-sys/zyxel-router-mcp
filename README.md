@@ -60,3 +60,9 @@ Some router quirks the client handles: an edit must send only the fields that ch
 ## Disclaimer
 
 Unofficial, not affiliated with Zyxel or any provider. It changes live network settings; writes are opt-in per call, but use it at your own risk. Your ISP may push firmware updates that change the API.
+
+## License
+
+Copyright (C) 2026 76r75r6qbh-sys
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. It is distributed WITHOUT ANY WARRANTY; see [LICENSE](LICENSE) for the full text.
