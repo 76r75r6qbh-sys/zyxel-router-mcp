@@ -129,8 +129,18 @@ server.registerTool(
 
 server.registerTool(
   "list_dhcp_reservations",
-  { description: "Static DHCP reservations (MAC -> IP) with their Index." },
-  tool(() => run(async (c) => (await c.dal("static_dhcp")).Object))
+  { description: "Static DHCP reservations (MAC -> IP) with their Index and the device's name (custom name if set)." },
+  tool(() =>
+    run(async (c) => {
+      const norm = (m) => (m || "").toLowerCase().replace(/-/g, ":");
+      const custom = new Map(((await c.dal("change_icon_name")).Object ?? []).map((e) => [norm(e.MacAddress), e.HostName]));
+      const hosts = new Map(((await c.dal("lanhosts")).Object?.[0]?.lanhosts ?? []).map((h) => [norm(h.PhysAddress), h.HostName]));
+      return ((await c.dal("static_dhcp")).Object ?? []).map((r) => ({
+        ...r,
+        Name: custom.get(norm(r.MACAddr)) || hosts.get(norm(r.MACAddr)) || "",
+      }));
+    })
+  )
 );
 
 const READ_OIDS = [
@@ -268,6 +278,33 @@ server.registerTool(
       if (!confirm) return needConfirm("delete this DHCP reservation", res);
       const r = await c.dal("static_dhcp", "DELETE", { query: { Index: index } });
       return { applied: true, deleted: res, result: r.result };
+    })
+  )
+);
+
+// ---------- Device names (DAL "change_icon_name") ----------
+// The router has no description field on DHCP reservations; the closest is the custom device
+// name the GUI's "edit device" stores per MAC, which the device list and other pages show.
+
+const normMac = (m) => (m || "").toLowerCase().replace(/-/g, ":");
+
+server.registerTool(
+  "set_device_name",
+  {
+    description: "Give a LAN device a custom name on the router (the GUI's 'edit device' name), keyed by MAC.",
+    inputSchema: { mac: MAC, name: z.string().min(1).max(64), confirm: confirmArg },
+  },
+  tool(({ mac, name, confirm }) =>
+    run(async (c) => {
+      const entries = (await c.dal("change_icon_name")).Object ?? [];
+      const existing = entries.find((e) => normMac(e.MacAddress) === normMac(mac));
+      // A DAL PUT must carry only the changed fields, or the router rejects it.
+      const [method, body] = existing
+        ? ["PUT", { Index: existing.Index, HostName: name }]
+        : ["POST", { MacAddress: normMac(mac), HostName: name }];
+      if (!confirm) return needConfirm(`${existing ? "rename" : "name"} this device`, { method, ...body });
+      const r = await c.dal("change_icon_name", method, { body });
+      return { applied: true, result: r.result, method, ...body };
     })
   )
 );
