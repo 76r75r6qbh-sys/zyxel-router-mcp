@@ -272,6 +272,78 @@ server.registerTool(
   )
 );
 
+// ---------- Firewall ACL (per-device internet block) ----------
+// Field names follow Zyxel's DAL "firewall_acl" handler (libzcfg_fe_dal): the router copies
+// every key of the body into the rule, so only send fields it knows.
+
+const IPV4 = z.string().regex(/^\d+\.\d+\.\d+\.\d+$/);
+const aclSummary = (r) =>
+  pick(r, ["Index", "Name", "Enable", "Order", "Target", "X_ZYXEL_Direction", "Direction", "Protocol", "IPVersion",
+    "SourceIP", "SourceMask", "MACAddress", "DestIP", "DestMask"]);
+
+server.registerTool(
+  "list_firewall_rules",
+  { description: "Firewall ACL rules (including per-device internet blocks) with their Index." },
+  tool(() => run(async (c) => ((await c.dal("firewall_acl")).Object ?? []).map(aclSummary)))
+);
+
+server.registerTool(
+  "block_device_internet",
+  {
+    description:
+      "Block a LAN device from the internet with a firewall ACL rule (LAN to WAN, all protocols, IPv4, drop). " +
+      "LAN traffic, e.g. Home Assistant, keeps working. Give the device's MAC, its IP, or both (both must then match); " +
+      "with an IP, reserve it first (add_dhcp_reservation) so the block survives a new lease.",
+    inputSchema: {
+      name: z.string().min(1).max(64).describe("Rule name, e.g. 'Block humidifier'"),
+      mac: MAC.optional(),
+      ip: IPV4.optional(),
+      confirm: confirmArg,
+    },
+  },
+  tool(({ name, mac, ip, confirm }) =>
+    run(async (c) => {
+      if (!mac && !ip) throw new Error("Give mac, ip or both");
+      const rules = (await c.dal("firewall_acl")).Object ?? [];
+      if (rules.some((r) => r.Name === name)) throw new Error(`A firewall rule named "${name}" already exists`);
+      const body = {
+        Enable: true,
+        Name: name,
+        Order: rules.reduce((m, r) => Math.max(m, r.Order ?? 0), 0) + 1,
+        Target: "Drop",
+        Protocol: "ALL",
+        IPVersion: "IPv4",
+        Direction: "LAN_TO_WAN",
+        SourceIPPrefix: ip ? `${ip}/32` : "AnyIP",
+        DestIPPrefix: "AnyIP",
+        ...(mac ? { MACAddress: mac.toLowerCase().replace(/:/g, "-") } : {}),
+      };
+      if (!confirm) return needConfirm("add this firewall block", body);
+      const r = await c.dal("firewall_acl", "POST", { body });
+      const added = ((await c.dal("firewall_acl")).Object ?? []).find((x) => x.Name === name);
+      return { applied: true, result: r.result, rule: added ? aclSummary(added) : body };
+    })
+  )
+);
+
+server.registerTool(
+  "delete_firewall_rule",
+  {
+    description: "Delete a firewall ACL rule by Index (from list_firewall_rules), e.g. to lift a device block.",
+    inputSchema: { index: z.number().int(), confirm: confirmArg },
+  },
+  tool(({ index, confirm }) =>
+    run(async (c) => {
+      const rule = ((await c.dal("firewall_acl")).Object ?? []).find((r) => r.Index === index);
+      if (!rule) throw new Error(`No firewall rule with Index ${index}`);
+      const summary = aclSummary(rule);
+      if (!confirm) return needConfirm("delete this firewall rule", summary);
+      const r = await c.dal("firewall_acl", "DELETE", { query: { Index: index } });
+      return { applied: true, deleted: summary, result: r.result };
+    })
+  )
+);
+
 server.registerTool(
   "reboot_router",
   {

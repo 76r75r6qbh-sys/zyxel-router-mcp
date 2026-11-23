@@ -3,7 +3,7 @@
 MCP server (stdio) for a Zyxel router with the KPN Box web GUI (e.g. the EX5601-T1), talking to the router's encrypted DAL web API.
 
 - **Reads:** status, LAN devices, Wi-Fi, port forwards, DHCP reservations, any DAL settings object.
-- **Writes:** Wi-Fi on/off, port forwards, DHCP reservations, reboot. Every write is a dry run unless called with `confirm: true`.
+- **Writes:** Wi-Fi on/off, port forwards, DHCP reservations, per-device internet blocks (firewall ACL), reboot. Every write is a dry run unless called with `confirm: true`.
 
 ## Setup
 
