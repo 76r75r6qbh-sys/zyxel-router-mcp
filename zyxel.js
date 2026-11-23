@@ -1,4 +1,4 @@
-// Client for the Zyxel (KPN Box) web GUI "DAL" API.
+// Client for the Zyxel broadband router web GUI "DAL" API.
 // Protocol, as implemented by the router's own app.js:
 //  - GET /getRSAPublickKey -> RSA public key
 //  - POST /UserLogin with {content, key, iv}: content = AES-256-CBC(JSON), key = RSA-PKCS1v15(base64 AES key)

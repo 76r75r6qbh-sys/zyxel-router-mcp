@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// MCP server for a Zyxel (KPN Box) router. Read tools plus a small set of confirmed writes.
+// MCP server for a Zyxel broadband router (EX5601 family). Read tools plus a small set of confirmed writes.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -332,7 +332,7 @@ server.registerTool(
       "LAN traffic, e.g. Home Assistant, keeps working. Give the device's MAC, its IP, or both (both must then match); " +
       "with an IP, reserve it first (add_dhcp_reservation) so the block survives a new lease.",
     inputSchema: {
-      name: z.string().min(1).max(64).describe("Rule name, e.g. 'Block humidifier'"),
+      name: z.string().min(1).max(64).describe("Rule name, e.g. 'Block smart plug'"),
       mac: MAC.optional(),
       ip: IPV4.optional(),
       confirm: confirmArg,

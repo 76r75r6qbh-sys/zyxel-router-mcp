@@ -1,7 +1,7 @@
 {
   "name": "zyxel-router-mcp",
   "version": "0.1.0",
-  "description": "MCP server for a Zyxel (KPN Box) router via its encrypted DAL web API",
+  "description": "MCP server for Zyxel EX5601/EX5600 broadband routers via their encrypted DAL web API",
   "type": "module",
   "main": "server.js",
   "bin": { "zyxel-router-mcp": "server.js" },
